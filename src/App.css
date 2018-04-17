@@ -1,5 +1,6 @@
 .App {
   text-align: center;
+  font-family: sans-serif;
 }
 
 .App-logo {
@@ -9,20 +10,102 @@
 
 .App-header {
   text-align: left;
-  background-color: #222;
-  padding: 1px 10px;
+  width: 100%;
+  box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
+  background: #006400; /* Old browsers */
+  background: -moz-linear-gradient(
+    45deg,
+    #006400 0%,
+    #006400 50%,
+    #006400 50%,
+    #ffffff 50%,
+    #ffffff 55%,
+    #006400 55%,
+    #006400 55%,
+    #006400 59%,
+    #ffffff 59%,
+    #ffffff 64%,
+    #006400 64%,
+    #006400 64%,
+    #006400 68%,
+    #ffffff 68%,
+    #ffffff 68%,
+    #ffffff 73%,
+    #006400 73%,
+    #006400 73%,
+    #006400 77%,
+    #ffffff 77%
+  ); /* FF3.6-15 */
+  background: -webkit-linear-gradient(
+    45deg,
+    #006400 0%,
+    #006400 50%,
+    #006400 50%,
+    #ffffff 50%,
+    #ffffff 55%,
+    #006400 55%,
+    #006400 55%,
+    #006400 59%,
+    #ffffff 59%,
+    #ffffff 64%,
+    #006400 64%,
+    #006400 64%,
+    #006400 68%,
+    #ffffff 68%,
+    #ffffff 68%,
+    #ffffff 73%,
+    #006400 73%,
+    #006400 73%,
+    #006400 77%,
+    #ffffff 77%
+  ); /* Chrome10-25,Safari5.1-6 */
+  background: linear-gradient(
+    45deg,
+    #006400 0%,
+    #006400 50%,
+    #006400 50%,
+    #ffffff 50%,
+    #ffffff 55%,
+    #006400 55%,
+    #006400 55%,
+    #006400 59%,
+    #ffffff 59%,
+    #ffffff 64%,
+    #006400 64%,
+    #006400 64%,
+    #006400 68%,
+    #ffffff 68%,
+    #ffffff 68%,
+    #ffffff 73%,
+    #006400 73%,
+    #006400 73%,
+    #006400 77%,
+    #ffffff 77%
+  ); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#006400', endColorstr='#ffffff',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+}
+
+.App-banner {
+  line-height: 40px;
+  vertical-align: middle;
+  margin: 0 auto;
+  width: 1024px;
+  text-align: left;
   color: white;
+  display: flex;
 }
 
 .App-intro {
   font-size: large;
+  width: 1024px;
+  margin: 0 auto;
 }
 
 .App-btn {
   background-color: #ff9900;
   outline: 0;
   border: none;
-  border-radius: 5px;
+  border-radius: 50%;
   color: white;
   font-size: 1.2em;
   padding: 0.5em 1em;
@@ -53,36 +136,98 @@
 }
 
 .App-card-avatar {
-  width: 48px !important;
-  height: 48px !important;
+  width: 35px !important;
   border-radius: 50%;
+  vertical-align: middle;
   margin: 0.5em;
 }
 
 @keyframes App-logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.float-user{
+.float-user {
+  margin-left: auto;
+  position: relative;
+}
+
+.float-user img {
+  width: 35px;
+  border-radius: 25px;
+  vertical-align: middle;
+}
+
+.float-user button {
+  height: 35px;
+  width: 35px;
+  vertical-align: middle;
+}
+
+.float-bubble {
+  right: 10px;
+  padding: 20px;
+  border-radius: 3px;
   position: absolute;
-  right: 15px;
-  top: 15px;
-}
-.float-user img{
-  width: 40px;
-  float: right;
-}
-
-.float-user p{
-  color: white;
-  font-size: 12px;
-  float: right;
-  margin-right: 10px;
+  background: white;
+  -webkit-box-shadow: 3px 3px 11px 0px rgba(0, 0, 0, 0.75);
+  -moz-box-shadow: 3px 3px 11px 0px rgba(0, 0, 0, 0.75);
+  box-shadow: 3px 3px 11px 0px rgba(0, 0, 0, 0.75);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s, visibility 0.3s;
 }
 
-.float-user button{
-  float: right;
-  height: 40px;
-  width: 40px;
+.float-bubble:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 0;
+  border: 10px solid transparent;
+  border-bottom-color: #ffffff;
+  border-top: 0;
+  border-right: 0;
+  margin-left: 0px;
+  margin-top: -10px;
+}
+
+.show {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.float-img:hover {
+  cursor: pointer;
+}
+
+.float-img {
+  animation: skew 3s infinite;
+}
+
+.float-img:active {
+  transform: scale(0.9);
+}
+
+.App-title h2{
+  -webkit-text-fill-color: white;
+-webkit-text-stroke: .5px #006400;
+}
+
+@media (max-width: 1024px) {
+  .App-banner,
+  .App-intro {
+    width: 100%;
+  }
+  .float-user {
+    margin-right: 5px;
+  }
+  .App-title {
+    margin-left: 5px;
+  }
 }

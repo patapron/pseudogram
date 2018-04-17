@@ -8,9 +8,12 @@ class App extends Component {
     super();
     this.state = {
       user: null,
-      pictures: []
+      pictures: [],
+      uploadValue: 0,
+      showBubble: false
     };
 
+    this.showBubbleAction = this.showBubbleAction.bind(this);
     this.handleAuth = this.handleAuth.bind(this);
     this.handleLogOut = this.handleLogOut.bind(this);
     // función que manejará el evento de upload
@@ -33,11 +36,14 @@ class App extends Component {
       });
     });
 
-    firebase.database().ref('pictures').on('child_added', snapshot => {
-      this.setState({
-        pictures: this.state.pictures.concat(snapshot.val())
+    firebase
+      .database()
+      .ref('pictures')
+      .on('child_added', snapshot => {
+        this.setState({
+          pictures: this.state.pictures.concat(snapshot.val())
+        });
       });
-    });
   }
 
   handleAuth() {
@@ -46,14 +52,18 @@ class App extends Component {
 
     // Función auth de la API de firebase, le pasamos el proveedor Google.
     // devuelve promesa, es neceario capturar con un then. `template string`
-    firebase.auth().signInWithPopup(provider)
+    firebase
+      .auth()
+      .signInWithPopup(provider)
       .then(result => console.log(`${result.user.email} ha iniciado sesión`))
       .catch(error => console.log(`Error ${error.code}: ${error.message}`));
   }
 
   handleLogOut() {
     // Método para hace3r logout
-    firebase.auth().signOut()
+    firebase
+      .auth()
+      .signOut()
       .then(result => console.log(`Ha salido`))
       .catch(error => console.log(`Error ${error.code}: ${error.message}`));
   }
@@ -63,40 +73,37 @@ class App extends Component {
     if (this.state.user) {
       return (
         <div>
-          <div className="float-user">
-            {/* botón de salir */}
-            <button onClick={this.handleLogOut}>Salir</button>
-            <img src={this.state.user.photoURL} alt={this.state.user.displayName} />
-
-            <p>Hola {this.state.user.displayName}!</p>
-          </div>
           {/* cargamos el gestor de archivos */}
-          <FileUpload onUpload={this.handleUpload} />
-          {
-            this.state.pictures.map(picture => (
-              <div className="App-card">
+          <FileUpload
+            onUpload={this.handleUpload}
+            uploadValue={this.state.uploadValue}
+          />
+          {this.state.pictures
+            .map((picture, i) => (
+              <div className="App-card" key={i}>
                 <figure className="App-card-image">
-                  <img src={picture.image} />
                   <figcaption className="App-card-footer">
-                    <img className="App-card-avatar" src={picture.photoURL} alt={picture.displayName} />
+                    <img
+                      className="App-card-avatar"
+                      src={picture.photoURL}
+                      alt={picture.displayName}
+                    />
                     <span className="App-card-name">{picture.displayName}</span>
                   </figcaption>
+                  <img src={picture.image} alt={picture.displayName} />
                 </figure>
               </div>
-            )).reverse()
-          }
+            ))
+            .reverse()}
         </div>
       );
     } else {
       // Si no lo está
-      return (
-        <button onClick={this.handleAuth}>Login con Google</button>
-      )
+      return <button onClick={this.handleAuth}>Login con Google</button>;
     }
   }
 
   handleUpload(event) {
-
     // el evento de subida trae un array de archivos
     const file = event.target.files[0];
 
@@ -107,46 +114,76 @@ class App extends Component {
     const task = storageRef.put(file);
 
     // evento state de firebase cuando se sube un fichero
-    task.on('state_changed', snapshot => {
+    task.on(
+      'state_changed',
+      snapshot => {
+        // nos devuelve el porcentaje de fichero que se ha subido
+        let percentage = snapshot.bytesTransferred / snapshot.totalBytes * 100;
+        // lo asignamos al valor de la barra
+        this.setState({
+          uploadValue: percentage
+        });
+      },
+      error => {
+        console.log(error.message);
+      },
+      () => {
+        const record = {
+          photoURL: this.state.user.photoURL,
+          displayName: this.state.user.displayName,
+          image: task.snapshot.downloadURL,
+          date: Date(),
+          karma: 0
+        };
 
-      // nos devuelve el porcentaje de fichero que se ha subido
-      let percentage = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      // lo asignamos al valor de la barra
-      this.setState({
-        uploadValue: percentage
-      })
-    }, error => {
-      console.log(error.message)
-    }, () => {
-      const record = {
-        photoURL: this.state.user.photoURL,
-        displayName: this.state.user.displayName,
-        image: task.snapshot.downloadURL
+        const dbRef = firebase.database().ref('pictures');
+        const newPicture = dbRef.push();
+        newPicture.set(record);
+
+        // // cuando ya se ha subido la imagen
+        // this.setState({
+        //   // barra al 100%
+        //   uploadValue: 100,
+        //   // la imagen será la url de subida
+        //   picture: task.snapshot.downloadURL
+        // });
       }
+    );
+  }
 
-      const dbRef = firebase.database().ref('pictures');
-      const newPicture = dbRef.push();
-      newPicture.set(record);
-
-      // // cuando ya se ha subido la imagen
-      // this.setState({
-      //   // barra al 100%
-      //   uploadValue: 100,
-      //   // la imagen será la url de subida 
-      //   picture: task.snapshot.downloadURL
-      // });
-    });
+  showBubbleAction(event) {
+    this.setState({ showBubble: !this.state.showBubble });
   }
 
   render() {
     return (
       <div className="App">
         <header className="App-header">
-          <h2 className="App-title">Pseudogram</h2>
+          <div className="App-banner">
+            <div className="App-title">
+              <h2>White & Green</h2>
+            </div>
+            {this.state.user && (
+              <div className="float-user">
+                <img
+                  src={this.state.user.photoURL}
+                  alt={this.state.user.displayName}
+                  onClick={this.showBubbleAction}
+                  className="float-img"
+                />
+                <div
+                  className={
+                    'float-bubble ' +
+                    (this.state.showBubble ? 'show' : 'hidden')
+                  }
+                >
+                  <button onClick={this.handleLogOut}>Salir</button>
+                </div>
+              </div>
+            )}
+          </div>
         </header>
-        <div className="App-intro">
-          {this.renderLoginButton()}
-        </div>
+        <div className="App-intro">{this.renderLoginButton()}</div>
       </div>
     );
   }
