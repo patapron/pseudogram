@@ -13,6 +13,7 @@ class App extends Component {
       showBubble: false
     };
 
+    this.handleDeletePicture = this.handleDeletePicture.bind(this);
     this.showBubbleAction = this.showBubbleAction.bind(this);
     this.handleAuth = this.handleAuth.bind(this);
     this.handleLogOut = this.handleLogOut.bind(this);
@@ -28,10 +29,9 @@ class App extends Component {
     // Si no, el usuario es 'null'
     // Listener que nos devuelve los cambios en la información del usuario, login, exit, etc
     firebase.auth().onAuthStateChanged(user => {
-      console.log(user);
       // Modifica el estado
       this.setState({
-        // si la clabe y el valor son iguales, nos ahorramos poner user: user
+        // si la clave y el valor son iguales, nos ahorramos poner user: user
         user
       });
     });
@@ -40,8 +40,10 @@ class App extends Component {
       .database()
       .ref('pictures')
       .on('child_added', snapshot => {
+        let pic = snapshot.val();
+        pic['key'] = snapshot.key;
         this.setState({
-          pictures: this.state.pictures.concat(snapshot.val())
+          pictures: this.state.pictures.concat(pic)
         });
       });
   }
@@ -80,7 +82,7 @@ class App extends Component {
           />
           {this.state.pictures
             .map((picture, i) => (
-              <div className="App-card" key={i}>
+              <div className="App-card" key={picture.key}>
                 <figure className="App-card-image">
                   <figcaption className="App-card-footer">
                     <img
@@ -89,6 +91,7 @@ class App extends Component {
                       alt={picture.displayName}
                     />
                     <span className="App-card-name">{picture.displayName}</span>
+                    <div>{this.renderDeleteButton(picture)}</div>
                   </figcaption>
                   <img src={picture.image} alt={picture.displayName} />
                 </figure>
@@ -101,6 +104,44 @@ class App extends Component {
       // Si no lo está
       return <button onClick={this.handleAuth}>Login con Google</button>;
     }
+  }
+
+  renderDeleteButton(picture) {
+    // Si el usuario está logeado
+    if (this.state.user.email === picture.email) {
+      return (
+        <div>
+          {/* cargamos el gestor de archivos */}
+          <button onClick={() => this.handleDeletePicture(this, picture)}>
+            Eliminar
+          </button>
+        </div>
+      );
+    } else {
+      // Si no lo está
+      return '';
+    }
+  }
+
+  handleDeletePicture(event, picture) {
+    // Get a reference to the storage service, which is used to create references in your storage bucket
+    const storage = firebase.storage();
+
+    // Create a storage reference from our storage service
+    const storageRef = storage.ref();
+
+    // Create a child reference
+    const imagesRef = storageRef.child('pictures/' + picture.key);
+
+    // Delete the file
+    imagesRef
+      .delete()
+      .then(function() {
+        // File deleted successfully
+      })
+      .catch(function(error) {
+        // Uh-oh, an error occurred!
+      });
   }
 
   handleUpload(event) {
@@ -133,7 +174,8 @@ class App extends Component {
           displayName: this.state.user.displayName,
           image: task.snapshot.downloadURL,
           date: Date(),
-          karma: 0
+          karma: 0,
+          email: this.state.user.email
         };
 
         const dbRef = firebase.database().ref('pictures');
