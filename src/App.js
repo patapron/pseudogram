@@ -13,6 +13,7 @@ class App extends Component {
       showBubble: false
     };
 
+    this.handleDeletePicture = this.handleDeletePicture.bind(this);
     this.showBubbleAction = this.showBubbleAction.bind(this);
     this.handleAuth = this.handleAuth.bind(this);
     this.handleLogOut = this.handleLogOut.bind(this);
@@ -28,22 +29,27 @@ class App extends Component {
     // Si no, el usuario es 'null'
     // Listener que nos devuelve los cambios en la información del usuario, login, exit, etc
     firebase.auth().onAuthStateChanged(user => {
-      console.log(user);
       // Modifica el estado
       this.setState({
-        // si la clabe y el valor son iguales, nos ahorramos poner user: user
+        // si la clave y el valor son iguales, nos ahorramos poner user: user
         user
       });
     });
 
+    this.snapshot();
+  }
+
+  snapshot(){
     firebase
-      .database()
-      .ref('pictures')
-      .on('child_added', snapshot => {
-        this.setState({
-          pictures: this.state.pictures.concat(snapshot.val())
-        });
+    .database()
+    .ref('pictures')
+    .on('child_added', snapshot => {
+      let pic = snapshot.val();
+      pic['key'] = snapshot.key;
+      this.setState({
+        pictures: this.state.pictures.concat(pic)
       });
+    });
   }
 
   handleAuth() {
@@ -80,7 +86,7 @@ class App extends Component {
           />
           {this.state.pictures
             .map((picture, i) => (
-              <div className="App-card" key={i}>
+              <div className="App-card" key={picture.key}>
                 <figure className="App-card-image">
                   <figcaption className="App-card-footer">
                     <img
@@ -89,6 +95,7 @@ class App extends Component {
                       alt={picture.displayName}
                     />
                     <span className="App-card-name">{picture.displayName}</span>
+                    <div>{this.renderDeleteButton(picture)}</div>
                   </figcaption>
                   <img src={picture.image} alt={picture.displayName} />
                 </figure>
@@ -103,12 +110,80 @@ class App extends Component {
     }
   }
 
+  renderDeleteButton(picture) {
+    // Si el usuario está logeado
+    if (this.state.user.email === picture.email) {
+      return (
+        <div>
+          {/* cargamos el gestor de archivos */}
+          <button onClick={() => this.handleDeletePicture(this, picture)}>
+            Eliminar
+          </button>
+        </div>
+      );
+    } else {
+      // Si no lo está
+      return '';
+    }
+  }
+
+  handleDeletePicture(event, picture) {
+    this.deleteDatabase(event, picture);
+  }
+
+  deleteDatabase(event, picture){
+    // Delete database ref
+    const database = firebase.database();
+    const databaseRef = database.ref();
+    const picRef = databaseRef.child('pictures/' + picture.key);
+
+    picRef.remove()      
+    .then(result =>{
+            // File deleted successfully
+      this.deleteStorage(event, picture);
+    })
+    .catch(function(error) {
+      // Uh-oh, an error occurred!
+      console.log("error db");
+    });
+  }
+
+  deleteStorage(event, picture){
+    // Delete storage file
+    const storage = firebase.storage();
+
+    // Create a storage reference from our storage service
+    const storageRef = storage.ref();
+
+    // Create a child reference
+    const imagesRef = storageRef.child('pictures/' + picture.fileName);
+
+    // Delete the file
+    imagesRef
+      .delete()
+      .then(result => {
+        // File deleted successfully      
+        this.setState({
+          pictures: []
+        });
+        this.snapshot();
+      })
+      .catch(function(error) {
+        // Uh-oh, an error occurred!
+        console.log("error storage");
+      });
+  }
+
+
+
   handleUpload(event) {
     // el evento de subida trae un array de archivos
     const file = event.target.files[0];
 
+    const fileName = this.makeId(10) + '.' + file.name.split('.').pop();
+
     // configuramos el lugar donde queremos que se almacene el archivo
-    const storageRef = firebase.storage().ref(`/fotos/${file.name}`);
+    const storageRef = firebase.storage().ref(`/pictures/${fileName}`);
 
     // sube el fichero al almacenamiento
     const task = storageRef.put(file);
@@ -133,7 +208,9 @@ class App extends Component {
           displayName: this.state.user.displayName,
           image: task.snapshot.downloadURL,
           date: Date(),
-          karma: 0
+          karma: 0,
+          email: this.state.user.email,
+          fileName : fileName
         };
 
         const dbRef = firebase.database().ref('pictures');
@@ -149,6 +226,18 @@ class App extends Component {
         // });
       }
     );
+  }
+
+  makeId(size) {
+    size = size && size > 0 ? size : 10; 
+
+    let text = "";
+    let possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  
+    for (let i = 0; i < size; i++)
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
+  
+    return text;
   }
 
   showBubbleAction(event) {
