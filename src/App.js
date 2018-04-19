@@ -36,16 +36,20 @@ class App extends Component {
       });
     });
 
+    this.snapshot();
+  }
+
+  snapshot(){
     firebase
-      .database()
-      .ref('pictures')
-      .on('child_added', snapshot => {
-        let pic = snapshot.val();
-        pic['key'] = snapshot.key;
-        this.setState({
-          pictures: this.state.pictures.concat(pic)
-        });
+    .database()
+    .ref('pictures')
+    .on('child_added', snapshot => {
+      let pic = snapshot.val();
+      pic['key'] = snapshot.key;
+      this.setState({
+        pictures: this.state.pictures.concat(pic)
       });
+    });
   }
 
   handleAuth() {
@@ -124,32 +128,62 @@ class App extends Component {
   }
 
   handleDeletePicture(event, picture) {
-    // Get a reference to the storage service, which is used to create references in your storage bucket
+    this.deleteDatabase(event, picture);
+  }
+
+  deleteDatabase(event, picture){
+    // Delete database ref
+    const database = firebase.database();
+    const databaseRef = database.ref();
+    const picRef = databaseRef.child('pictures/' + picture.key);
+
+    picRef.remove()      
+    .then(result =>{
+            // File deleted successfully
+      this.deleteStorage(event, picture);
+    })
+    .catch(function(error) {
+      // Uh-oh, an error occurred!
+      console.log("error db");
+    });
+  }
+
+  deleteStorage(event, picture){
+    // Delete storage file
     const storage = firebase.storage();
 
     // Create a storage reference from our storage service
     const storageRef = storage.ref();
 
     // Create a child reference
-    const imagesRef = storageRef.child('pictures/' + picture.key);
+    const imagesRef = storageRef.child('pictures/' + picture.fileName);
 
     // Delete the file
     imagesRef
       .delete()
-      .then(function() {
-        // File deleted successfully
+      .then(result => {
+        // File deleted successfully      
+        this.setState({
+          pictures: []
+        });
+        this.snapshot();
       })
       .catch(function(error) {
         // Uh-oh, an error occurred!
+        console.log("error storage");
       });
   }
+
+
 
   handleUpload(event) {
     // el evento de subida trae un array de archivos
     const file = event.target.files[0];
 
+    const fileName = this.makeId(10) + '.' + file.name.split('.').pop();
+
     // configuramos el lugar donde queremos que se almacene el archivo
-    const storageRef = firebase.storage().ref(`/fotos/${file.name}`);
+    const storageRef = firebase.storage().ref(`/pictures/${fileName}`);
 
     // sube el fichero al almacenamiento
     const task = storageRef.put(file);
@@ -175,7 +209,8 @@ class App extends Component {
           image: task.snapshot.downloadURL,
           date: Date(),
           karma: 0,
-          email: this.state.user.email
+          email: this.state.user.email,
+          fileName : fileName
         };
 
         const dbRef = firebase.database().ref('pictures');
@@ -191,6 +226,18 @@ class App extends Component {
         // });
       }
     );
+  }
+
+  makeId(size) {
+    size = size && size > 0 ? size : 10; 
+
+    let text = "";
+    let possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  
+    for (let i = 0; i < size; i++)
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
+  
+    return text;
   }
 
   showBubbleAction(event) {
